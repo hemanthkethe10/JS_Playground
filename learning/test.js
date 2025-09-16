@@ -1,0 +1,197 @@
+function run (input) {
+  try{
+  input.pageData.showInstance = true;
+  input.pageData.showDirection = true;
+  input.pageData.showPartner = true;
+  input.pageData.showPartnerDetails = true;
+  input.pageData.showPADetails = true;
+  input.pageData.clientName = input.pageData.route.currentRoutes[0].clientName;
+  //For success messages
+  input.pageData.showNew = input.pageData.route.requestType==="New";
+if(input.pageData.route.requestType!=="New"){
+  input.pageData.showUpdate = input.pageData.route.requestType==="Update";
+ }
+  input.pageData.showDelete = input.pageData.route.requestType==="Delete";
+ //For BU view page grey containers
+  input.pageData.closeRequest =
+  input.pageData.route.currentRoutes[0].destinations.every(
+    (dest) => dest.isRouteCreated === true
+  );
+  //Set the keys needed for IT Edit
+  if(input.editingUserType === "IT"){
+    input.pageData.closeRequest =
+      input.pageData.route.currentRoutes[0].destinations.every(
+        (dest) => dest.isRouteCreated === true
+      );
+    input.pageData.notifyBusinessUserTest = input.pageData.route.status === "Closed";
+    input.pageData.showRouteprogress = input.pageData.route?.isRoutingStarted ?? false;
+  }
+  //For update and delete Unhide grey container
+  if(input.pageData.route.requestType==="Update" || input.pageData.route.requestType==="Delete"){
+    input.pageData.closeRequest = true;
+  }
+  input.pageData.partnerAccount = input.pageData.route.partnerAccount;
+  input.pageData.account = input.pageData.route.account;
+  input.pageData.clients = input.pageData.partnerInfo.clients;
+  input.pageData.isInbound = input.pageData.route.direction === "Inbound";
+  input.pageData.isOutbound = input.pageData.route.direction === "Outbound";
+  input.pageData.showAccountDetailsInfo = input.pageData.isInbound;
+  input.pageData.showInternalSite = input.pageData.route.source.name === "InternalSite";
+  input.pageData.showAccountDetails =  input.pageData.isInbound;
+  input.pageData.siteDetails =  input.pageData.showInternalSite && input.pageData.isOutbound;
+  input.pageData.partnerAccounts = input.pageData.partnerInfo.accounts;
+  input.pageData.partnerAccounts.forEach((account)=>{
+    account.value = account.accountName;
+   account.label= account.accountName})
+   let destinationAndSourcesMap={"sources":[{"label":"NYL Hosted Partner Account","value":"NYLhosted"},{"label":"Partner Hosted NYL Account","value":"Partnerhosted"}],"destinations":[{"label":"My File Transfer Account","value":"TransferAccount"},{"label":"Internal Site","value":"InternalSite"},{"label":"Application Account","value":"ApplicationAccount"}]}
+   input.pageData.sources = (input.pageData.route.direction === "Inbound") ? destinationAndSourcesMap.sources : destinationAndSourcesMap.destinations;
+   input.pageData.destinations = (input.pageData.route.direction === "Inbound") ? destinationAndSourcesMap.destinations : destinationAndSourcesMap.sources;
+  input.pageData.accountInfo = input.pageData.partnerAccounts.filter((partner)=>partner.value === input.pageData.route.partnerAccount);
+  if (input.pageData.isOutbound){
+    let source =  input.pageData.route.source.name;
+    input.pageData.showApplicationAccount = source === "ApplicationAccount";
+    input.pageData.showInternalSite =  source === "InternalSite";
+    input.pageData.showTransferAccount = source === "TransferAccount";
+    input.pageData.showExistingFolder = input.pageData.route.source.folderType === "existingFolder";
+    input.pageData.showNewFolder = input.pageData.route.source.folderType === "newFolder";
+    input.pageData.showISAccount = input.pageData.showInternalSite;
+    input.pageData.showISSite = input.pageData.showISAccount;
+    input.pageData.showPA = true;
+  }
+  if(input.pageData.route.direction === "Inbound"){
+    let partnerTransferSites = input.pageData?.acountFolders?.filter((info)=>info.accountName === input.pageData.route.account && info.type == "sites")?.at(0)?.result;
+    input.pageData.partnerTransferSites = partnerTransferSites;
+    input.pageData.selectedSite = (input.pageData.route.source.siteName) && partnerTransferSites?.filter((site)=>site.name === input.pageData.route.source.siteName)?.at(0);
+    input.pageData.showAccountDetailsSite = (input.pageData.route.source.siteName) && (input.pageData.route.source.siteName) ? true : false ;
+    input.pageData.showFilePatternSite = input.pageData.showAccountDetailsSite;
+    input.pageData.showPA = false;
+  }
+  else {
+    let routeSites = input.pageData?.acountFolders?.filter((info)=>info.accountName === input.pageData.route.account && info.type == "sites");
+    input.pageData.buInternalSites = routeSites?.at(0)?.result;
+    input.pageData.selectedSite = (input.pageData.route.source.siteName) && (input.pageData.route.source.siteName) && routeSites?.at(0)?.result?.filter((site)=>site.name === input.pageData.route.source.siteName)?.at(0);
+  }
+  input.pageData.fileIds = input.pageData.fileIds.result;
+  input.pageData.showRemoteSite = input.pageData.route.source.name === "Partnerhosted";
+    if(input.pageData.route.currentRoutes.length){
+     input.pageData.route.currentRoutes.forEach((route)=>{
+      //sourceFolders
+     if (input.pageData.route.source?.folderType === "existingFolder") {
+      let sourceFolders = input.pageData?.acountFolders?.filter((info) => info.accountName === input.pageData.route.account);
+      input.pageData.sourceFolders = sourceFolders?.at(0)?.result;
+      route.itFolders = sourceFolders?.at(0)?.result;
+      }
+       route.showDescription = true; 
+       route.showFileIdDetails = true;
+       route.preDeliveryDetails = true;
+       route.showCron = input.pageData.route.source.schedule === "cron";
+       route.showRenameExample = (input.pageData.route.direction === "Outbound") && (route.renameFile.enabled === "true");
+       let fileIDInfo = input.pageData.fileIds.filter((it)=> it.fileId === route.fileId)
+       if (fileIDInfo === undefined || (Array.isArray(fileIDInfo) && fileIDInfo.length === 0)
+       ){} else {
+        route.fileIDInfo = fileIDInfo[0];
+       }
+       route?.destinations?.forEach((destination) => {
+      if(route.destinations.length){
+        //For IT Admin actions
+        if(input.editingUserType === "IT"){
+          if (input.pageData.isInbound) {
+            route.requireSignature = route.pgpDecrypt.enabled === "true";
+            input.pageData.showFolderSelection = true;
+            route.requireSite = input.pageData.route.source.name === "Partnerhosted";
+            destination.renameEnable = destination.renameFile.enabled === "true";
+            destination.encodingEnable = destination.encodingConversions.enabled === "true";
+            route.shownFolder = input.pageData.route.source?.folderType === "newFolder";
+            route.showeFolder = input.pageData.route.source?.folderType === "existingFolder";
+            destination.noActionRequired = destination.renameEnable === false && destination.encodingEnable === false;
+          } else {
+            route.renameEnable = route.renameFile.enabled === "true";
+            route.encodingEnable = route.encodingConversions.enabled === "true";
+            //source subscription
+            input.pageData.showFolderSelection = input.pageData.isOutbound && input.pageData.route.source.name === "InternalSite";
+            //destination subscription
+            destination.requireSubscription = input.pageData.isOutbound && destination.destinationType === "NYLhosted";
+            destination.noActionRequired = true;
+            route.requireSite = input.pageData.route.source.name === "InternalSite";
+            //show Folder selection
+            input.pageData.showFolderSelection = input.pageData.route.source.name === "InternalSite";
+            //destination.requireRemoteSite = input.pageData.route.source.name =="InternalSite";
+            destination.showFolderIT = input.pageData.route.source?.folderType === "newFolder";
+            //Outbound and Internal Site
+            route.shownFolder = input.pageData.route.source.name === "InternalSite" && input.pageData.route.source?.folderType === "newFolder";
+            route.showeFolder = input.pageData.route.source.name === "InternalSite" && input.pageData.route.source?.folderType === "existingFolder";
+            //nopreRoutingRequired
+            route.nopreRoutingRequired = route.renameEnable === false && route.encodingEnable === false;
+          }}
+        //folders
+        if(destination?.folderType === "existingFolder"){
+          let destinationFolders = input.pageData?.acountFolders?.filter((info)=>info.accountName === destination.accountName && info.type === "folder")
+          destination.folders = destinationFolders?.at(0)?.result;
+        }
+       if(input.pageData.isInbound){
+        let sites = input.pageData?.acountFolders?.filter((info)=>info.accountName === destination?.accountName && info.type == "sites");
+        destination.selectedSite = (destination.remoteSite) && (destination.remoteSite.name) && sites?.at(0)?.result.filter((site)=>site.name === destination.remoteSite.name)?.at(0);
+        (destination.destinationType === "InternalSite") ? destination.destinationSites = input.pageData?.acountFolders?.filter((info)=>info.accountName === destination.accountName && info.type === "sites")?.at(0)?.result: [];
+        (destination.destinationType === "InternalSite") ? destination.destinationAccountSites = sites || [] : "";
+        route.shownFolder = input.pageData.route.source?.folderType === "newFolder";
+        route.showeFolder = input.pageData.route.source?.folderType === "existingFolder";
+        destination.showISDetails = destination.destinationType === "InternalSite"
+        
+       }
+       else{
+        let sites = input.pageData?.acountFolders?.filter((info)=>info.accountName === destination?.accountName && info.type == "sites");
+        destination.selectedSite = (destination.remoteSite) && (destination.remoteSite.name) && sites?.at(0)?.result.filter((site)=>site.name === destination.remoteSite.name)?.at(0);
+        (destination.destinationType === "Partnerhosted") ? destination.destinationSites = input.pageData?.acountFolders?.filter((info)=>info.accountName === destination.accountName && info.type === "sites")?.at(0)?.result: [];
+        destination.pgpFiles = (destination.pgpEncrypt.enabled ==="true") ? input.pageData?.acountFolders?.filter((info)=>info.accountName === input.pageData.route.account && info.type==="pgp")?.at(0).result : [];
+        route.shownFolder = (input.pageData.route.source.name === "InternalSite") && (input.pageData.route.source?.folderType === "newFolder");
+        route.showeFolder = (input.pageData.route.source.name === "InternalSite") && (input.pageData.route.source?.folderType === "existingFolder");
+       }
+       destination.isInbound = !input.pageData.isInbound;
+       destination.isOutbound = !input.pageData.isOutbound;
+       route.showFileDestination = true;
+       destination.showNHA =  destination.destinationType === "NYLhosted";
+       destination.showExistingFolder = destination.folderType === "existingFolder";
+       destination.showNewFolder = destination.folderType === "newFolder";
+       destination.showRenamingEx = (input.pageData.route.direction === "Inbound") && destination.renameFile.enabled === "true";
+       destination.showPGP = (input.pageData.route.direction === "Outbound") && destination.pgpEncrypt.enabled === "true";
+       destination.showPassword = (input.pageData.route.direction === "Outbound") && destination?.requirePassword?.enabled === "true";
+       destination.showSuccessEmails = destination.successDelivery.enabled === "true";
+       destination.showEmails = destination.failedDelivery.enabled === "true";
+       destination.showTransferAccount = destination.destinationType === "TransferAccount";
+       destination.showInternalSite = destination.destinationType === "InternalSite";
+       destination.showApplicationAccount = destination.destinationType === "ApplicationAccount";
+       destination.showNewFolderAppAccount = (destination.showApplicationAccount) && (destination.folderType === "newFolder");
+       destination.showExistingFolderAppAccount = (destination.showApplicationAccount) && (destination.folderType === "existingFolder");
+       destination.showRemoteSite = (input.pageData.isOutbound) && destination.destinationType === "Partnerhosted";
+       destination.showSiteDetails = destination.showRemoteSite;
+   } 
+    input.pageData.routeProvisonDetails={
+    "isSubscriptionCreated": {},
+    "isSubscriptionUpdated":{},
+    "isRouteCreated": {},
+    "isRouteUpdated": {},
+    "inboundRoutePackageCreated":{},
+    "outboundRoutePackageCreated":{}
+   }
+//hide - toast messages
+destination.hideIsRouteCreated = destination.routeProvisonDetails?.isRouteCreated?.status === false;
+destination.hideIsRouteUpdated = destination.routeProvisonDetails?.isRouteUpdated?.status === false;
+destination.hideInboundRoutePackageCreated = destination.routeProvisonDetails?.inboundRoutePackageCreated?.status === false;
+destination.hideOutboundRoutePackageCreated = destination.routeProvisonDetails?.outboundRoutePackageCreated?.status === false;
+destination.hideIsSubscriptionCreated = destination.routeProvisonDetails?.isSubscriptionCreated?.status === false;
+destination.hideIsSubscriptionUpdated = destination.routeProvisonDetails?.isSubscriptionUpdated?.status === false;
+})
+   input.pageData.currentRoutes = input.pageData.route.currentRoutes || [];
+   input.pageData.currentRoute = input.pageData.route;
+   const numberList = Array.from({ length: input.pageData.route.currentRoutes.length }, (_, index) => index).join(',');
+   input.pageData.indexToDisable = input.pageData.showRouteprogress ? numberList : ''  
+  })
+  console.log("pageData==>",input.pageData);
+  return true;
+  }
+  }
+  catch(error)
+  {
+      console.log("error==>",error);
+  }
+}
