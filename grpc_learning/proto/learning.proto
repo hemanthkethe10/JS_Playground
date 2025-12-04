@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package learning;
+
+// ============================================
+// GREETING SERVICE - Demonstrates Unary RPC
+// ============================================
+service GreetingService {
+  // Simple unary RPC - one request, one response
+  rpc SayHello (HelloRequest) returns (HelloResponse);
+  
+  // Get user information by ID
+  rpc GetUser (GetUserRequest) returns (UserResponse);
+}
+
+// ============================================
+// CALCULATOR SERVICE - Demonstrates All RPC Types
+// ============================================
+service CalculatorService {
+  // Unary: Simple calculation
+  rpc Add (AddRequest) returns (AddResponse);
+  
+  // Server Streaming: Generate a sequence of numbers
+  rpc GenerateSequence (SequenceRequest) returns (stream NumberResponse);
+  
+  // Client Streaming: Calculate sum of streamed numbers
+  rpc CalculateSum (stream NumberRequest) returns (SumResponse);
+  
+  // Bidirectional Streaming: Real-time calculator
+  rpc RealTimeCalculator (stream CalculationRequest) returns (stream CalculationResponse);
+}
+
+// ============================================
+// TODO SERVICE - Practical CRUD Example
+// ============================================
+service TodoService {
+  // Create a new todo
+  rpc CreateTodo (CreateTodoRequest) returns (TodoResponse);
+  
+  // Get a todo by ID
+  rpc GetTodo (GetTodoRequest) returns (TodoResponse);
+  
+  // List all todos (server streaming)
+  rpc ListTodos (ListTodosRequest) returns (stream TodoResponse);
+  
+  // Update a todo
+  rpc UpdateTodo (UpdateTodoRequest) returns (TodoResponse);
+  
+  // Delete a todo
+  rpc DeleteTodo (DeleteTodoRequest) returns (DeleteTodoResponse);
+}
+
+// ============================================
+// MESSAGE DEFINITIONS
+// ============================================
+
+// --- Greeting Messages ---
+message HelloRequest {
+  string name = 1;
+  string language = 2;  // "en", "es", "fr", "de"
+}
+
+message HelloResponse {
+  string greeting = 1;
+  string timestamp = 2;
+}
+
+message GetUserRequest {
+  int32 user_id = 1;
+}
+
+message UserResponse {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  string role = 4;
+  bool is_active = 5;
+}
+
+// --- Calculator Messages ---
+message AddRequest {
+  double num1 = 1;
+  double num2 = 2;
+}
+
+message AddResponse {
+  double result = 1;
+}
+
+message SequenceRequest {
+  int32 start = 1;
+  int32 end = 2;
+  int32 step = 3;    // Default: 1
+}
+
+message NumberRequest {
+  double number = 1;
+}
+
+message NumberResponse {
+  double number = 1;
+  int32 index = 2;
+}
+
+message SumResponse {
+  double sum = 1;
+  int32 count = 2;
+  double average = 3;
+}
+
+message CalculationRequest {
+  string operation = 1;  // "add", "subtract", "multiply", "divide"
+  double num1 = 2;
+  double num2 = 3;
+}
+
+message CalculationResponse {
+  string operation = 1;
+  double result = 2;
+  string error = 3;
+}
+
+// --- Todo Messages ---
+enum TodoPriority {
+  LOW = 0;
+  MEDIUM = 1;
+  HIGH = 2;
+  URGENT = 3;
+}
+
+message Todo {
+  int32 id = 1;
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+  TodoPriority priority = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message CreateTodoRequest {
+  string title = 1;
+  string description = 2;
+  TodoPriority priority = 3;
+}
+
+message TodoResponse {
+  Todo todo = 1;
+}
+
+message GetTodoRequest {
+  int32 id = 1;
+}
+
+message ListTodosRequest {
+  bool completed_only = 1;
+  bool pending_only = 2;
+  TodoPriority priority_filter = 3;
+}
+
+message UpdateTodoRequest {
+  int32 id = 1;
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+  TodoPriority priority = 5;
+}
+
+message DeleteTodoRequest {
+  int32 id = 1;
+}
+
+message DeleteTodoResponse {
+  bool success = 1;
+  string message = 2;
+}
+
