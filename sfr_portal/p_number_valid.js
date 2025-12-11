@@ -217,3 +217,7 @@
             return false;
         }
     }
+
+    function isPhoneNumber(input) {
+        return isMobilePhone(input.number)
+    }
