@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Workers - Console Demo</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --accent: #0f3460;
+            --cyan: #00fff5;
+            --magenta: #e94560;
+            --text: #eaeaea;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--cyan);
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 2rem;
+        }
+        
+        .instruction-box {
+            background: var(--surface);
+            border-left: 4px solid var(--cyan);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .instruction-box h2 {
+            color: var(--cyan);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .instruction-box ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+        }
+        
+        .instruction-box code {
+            background: var(--accent);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            color: var(--cyan);
+        }
+        
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        
+        .code-block pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #c9d1d9;
+        }
+        
+        .code-block .comment { color: #8b949e; }
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .function { color: #d2a8ff; }
+        .code-block .string { color: #a5d6ff; }
+        .code-block .number { color: #79c0ff; }
+        
+        .section {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section h3 {
+            color: var(--magenta);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        .output {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: monospace;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .output .log { color: #58a6ff; }
+        .output .result { color: #3fb950; }
+        .output .time { color: #f0883e; }
+        
+        kbd {
+            background: var(--accent);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧵 Web Workers - Browser Console Demo</h1>
+        <p class="subtitle">Learn Web Workers by typing commands in the Developer Console</p>
+        
+        <div class="instruction-box">
+            <h2>📌 How to Use This Page</h2>
+            <ol>
+                <li>Open <strong>Developer Tools</strong> (<kbd>F12</kbd> or <kbd>Cmd+Option+I</kbd>)</li>
+                <li>Go to the <strong>Console</strong> tab</li>
+                <li>Copy and paste the code snippets below to experiment!</li>
+                <li>Watch the output in the console</li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h3>1️⃣ Create a Simple Worker (Inline using Blob)</h3>
+            <div class="code-block">
+<pre><span class="comment">// Create a worker from inline code (no separate file needed!)</span>
+<span class="keyword">const</span> workerCode = <span class="string">`
+  self.onmessage = function(e) {
+    console.log('Worker received:', e.data);
+    const result = e.data.toUpperCase();
+    self.postMessage(result);
+  };
+`</span>;
+
+<span class="keyword">const</span> blob = <span class="keyword">new</span> <span class="function">Blob</span>([workerCode], { type: <span class="string">'application/javascript'</span> });
+<span class="keyword">const</span> worker = <span class="keyword">new</span> <span class="function">Worker</span>(URL.<span class="function">createObjectURL</span>(blob));
+
+worker.<span class="function">onmessage</span> = (e) => console.log(<span class="string">'Main received:'</span>, e.data);
+worker.<span class="function">postMessage</span>(<span class="string">'hello from main thread'</span>);
+</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>2️⃣ CPU-Intensive Task: Sequential vs Parallel</h3>
+            <div class="code-block">
+<pre><span class="comment">// Fibonacci function (CPU intensive)</span>
+<span class="keyword">function</span> <span class="function">fib</span>(n) {
+  <span class="keyword">if</span> (n <= <span class="number">1</span>) <span class="keyword">return</span> n;
+  <span class="keyword">return</span> <span class="function">fib</span>(n - <span class="number">1</span>) + <span class="function">fib</span>(n - <span class="number">2</span>);
+}
+
+<span class="comment">// SEQUENTIAL - Blocks the main thread</span>
+console.time(<span class="string">'Sequential'</span>);
+[<span class="number">40</span>, <span class="number">40</span>, <span class="number">40</span>, <span class="number">40</span>].forEach((n, i) => {
+  console.log(<span class="string">`Task ${i+1}: fib(${n}) =`</span>, <span class="function">fib</span>(n));
+});
+console.timeEnd(<span class="string">'Sequential'</span>);
+</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>3️⃣ Run Tasks in Parallel with Web Workers</h3>
+            <div class="code-block">
+<pre><span class="comment">// Worker code that calculates fibonacci</span>
+<span class="keyword">const</span> fibWorkerCode = <span class="string">`
+  function fib(n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+  }
+  
+  self.onmessage = function(e) {
+    const { taskId, value } = e.data;
+    const start = performance.now();
+    const result = fib(value);
+    const time = Math.round(performance.now() - start);
+    self.postMessage({ taskId, value, result, time });
+  };
+`</span>;
+
+<span class="comment">// Create 4 workers</span>
+<span class="keyword">const</span> blob = <span class="keyword">new</span> <span class="function">Blob</span>([fibWorkerCode], { type: <span class="string">'application/javascript'</span> });
+<span class="keyword">const</span> workerUrl = URL.<span class="function">createObjectURL</span>(blob);
+
+console.log(<span class="string">'🚀 Starting PARALLEL execution...'</span>);
+console.time(<span class="string">'Parallel'</span>);
+
+<span class="keyword">const</span> tasks = [<span class="number">40</span>, <span class="number">40</span>, <span class="number">40</span>, <span class="number">40</span>];
+<span class="keyword">let</span> completed = <span class="number">0</span>;
+
+tasks.forEach((value, i) => {
+  <span class="keyword">const</span> w = <span class="keyword">new</span> <span class="function">Worker</span>(workerUrl);
+  w.onmessage = (e) => {
+    console.log(<span class="string">`✓ Task ${e.data.taskId}: fib(${e.data.value}) = ${e.data.result} (${e.data.time}ms)`</span>);
+    completed++;
+    <span class="keyword">if</span> (completed === tasks.length) {
+      console.timeEnd(<span class="string">'Parallel'</span>);
+      console.log(<span class="string">'🎉 All tasks complete!'</span>);
+    }
+    w.<span class="function">terminate</span>();
+  };
+  w.<span class="function">postMessage</span>({ taskId: i + <span class="number">1</span>, value });
+});
+</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>4️⃣ Easy Copy-Paste: Complete Comparison</h3>
+            <div class="code-block">
+<pre><span class="comment">// 🔥 COPY THIS ENTIRE BLOCK AND PASTE IN CONSOLE</span>
+
+(<span class="keyword">async</span> () => {
+  <span class="keyword">const</span> FIB_VALUE = <span class="number">40</span>;
+  <span class="keyword">const</span> TASK_COUNT = <span class="number">4</span>;
+  
+  <span class="comment">// Fibonacci function</span>
+  <span class="keyword">function</span> <span class="function">fib</span>(n) {
+    <span class="keyword">if</span> (n <= <span class="number">1</span>) <span class="keyword">return</span> n;
+    <span class="keyword">return</span> <span class="function">fib</span>(n - <span class="number">1</span>) + <span class="function">fib</span>(n - <span class="number">2</span>);
+  }
+  
+  console.log(<span class="string">'════════════════════════════════════════'</span>);
+  console.log(<span class="string">'   SEQUENTIAL vs PARALLEL COMPARISON'</span>);
+  console.log(<span class="string">'════════════════════════════════════════'</span>);
+  console.log(<span class="string">`Task: Calculate fib(${FIB_VALUE}) × ${TASK_COUNT} times\n`</span>);
+  
+  <span class="comment">// SEQUENTIAL</span>
+  console.log(<span class="string">'📊 SEQUENTIAL (Main Thread)...'</span>);
+  <span class="keyword">const</span> seqStart = performance.now();
+  <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i < TASK_COUNT; i++) {
+    <span class="keyword">const</span> start = performance.now();
+    <span class="keyword">const</span> result = <span class="function">fib</span>(FIB_VALUE);
+    console.log(<span class="string">`  Task ${i+1}: ${result} (${Math.round(performance.now() - start)}ms)`</span>);
+  }
+  <span class="keyword">const</span> seqTime = Math.round(performance.now() - seqStart);
+  console.log(<span class="string">`  ⏱ Total: ${seqTime}ms\n`</span>);
+  
+  <span class="comment">// PARALLEL</span>
+  console.log(<span class="string">'⚡ PARALLEL (Web Workers)...'</span>);
+  <span class="keyword">const</span> workerCode = <span class="string">`
+    function fib(n) { if (n <= 1) return n; return fib(n-1) + fib(n-2); }
+    self.onmessage = (e) => {
+      const start = performance.now();
+      const result = fib(e.data.value);
+      self.postMessage({ id: e.data.id, result, time: Math.round(performance.now() - start) });
+    };
+  `</span>;
+  
+  <span class="keyword">const</span> blob = <span class="keyword">new</span> <span class="function">Blob</span>([workerCode], { type: <span class="string">'application/javascript'</span> });
+  <span class="keyword">const</span> url = URL.<span class="function">createObjectURL</span>(blob);
+  
+  <span class="keyword">const</span> parStart = performance.now();
+  <span class="keyword">const</span> promises = Array.from({ length: TASK_COUNT }, (_, i) => {
+    <span class="keyword">return new</span> <span class="function">Promise</span>((resolve) => {
+      <span class="keyword">const</span> w = <span class="keyword">new</span> <span class="function">Worker</span>(url);
+      w.onmessage = (e) => { 
+        console.log(<span class="string">`  Task ${e.data.id}: ${e.data.result} (${e.data.time}ms)`</span>);
+        w.terminate(); 
+        resolve(e.data); 
+      };
+      w.<span class="function">postMessage</span>({ id: i + <span class="number">1</span>, value: FIB_VALUE });
+    });
+  });
+  
+  <span class="keyword">await</span> Promise.all(promises);
+  <span class="keyword">const</span> parTime = Math.round(performance.now() - parStart);
+  console.log(<span class="string">`  ⏱ Total: ${parTime}ms\n`</span>);
+  
+  <span class="comment">// COMPARISON</span>
+  <span class="keyword">const</span> speedup = (seqTime / parTime).toFixed(<span class="number">2</span>);
+  console.log(<span class="string">'════════════════════════════════════════'</span>);
+  console.log(<span class="string">`  Sequential: ${seqTime}ms`</span>);
+  console.log(<span class="string">`  Parallel:   ${parTime}ms`</span>);
+  console.log(<span class="string">`  Speedup:    ${speedup}x faster!`</span>);
+  console.log(<span class="string">'════════════════════════════════════════'</span>);
+  
+  URL.<span class="function">revokeObjectURL</span>(url);
+})();
+</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📚 Quick Reference</h3>
+            <div class="code-block">
+<pre><span class="comment">// Create worker from inline code</span>
+<span class="keyword">const</span> blob = <span class="keyword">new</span> Blob([<span class="string">'self.onmessage = (e) => { ... }'</span>], { type: <span class="string">'application/javascript'</span> });
+<span class="keyword">const</span> worker = <span class="keyword">new</span> Worker(URL.createObjectURL(blob));
+
+<span class="comment">// Send message to worker</span>
+worker.postMessage({ data: <span class="string">'hello'</span> });
+
+<span class="comment">// Receive message from worker</span>
+worker.onmessage = (e) => console.log(e.data);
+
+<span class="comment">// Handle errors</span>
+worker.onerror = (e) => console.error(e.message);
+
+<span class="comment">// Terminate worker when done</span>
+worker.terminate();
+</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Make helper functions available in console
+        window.createFibWorker = function() {
+            const code = `
+                function fib(n) { if (n <= 1) return n; return fib(n-1) + fib(n-2); }
+                self.onmessage = (e) => {
+                    const start = performance.now();
+                    const result = fib(e.data);
+                    self.postMessage({ result, time: Math.round(performance.now() - start) });
+                };
+            `;
+            const blob = new Blob([code], { type: 'application/javascript' });
+            return new Worker(URL.createObjectURL(blob));
+        };
+        
+        window.fib = function(n) {
+            if (n <= 1) return n;
+            return fib(n - 1) + fib(n - 2);
+        };
+        
+        console.log('%c🧵 Web Workers Console Demo', 'font-size: 20px; font-weight: bold; color: #00fff5;');
+        console.log('%cHelper functions available:', 'color: #f0883e;');
+        console.log('  • fib(n) - Calculate fibonacci');
+        console.log('  • createFibWorker() - Create a fibonacci worker');
+        console.log('\n%cTry: const w = createFibWorker(); w.onmessage = e => console.log(e.data); w.postMessage(40);', 'color: #58a6ff;');
+    </script>
+</body>
+</html>
+
