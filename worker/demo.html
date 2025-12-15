@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Threads Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent-cyan: #00d4ff;
+            --accent-magenta: #ff00aa;
+            --accent-green: #00ff88;
+            --accent-orange: #ff6b35;
+            --text-primary: #e8e8ed;
+            --text-secondary: #8888a0;
+            --border: #2a2a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 0, 170, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-primary) 0%, #0d0d14 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .dev-tools-hint {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 0, 170, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dev-tools-hint .icon {
+            font-size: 1.5rem;
+        }
+
+        .dev-tools-hint p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .dev-tools-hint kbd {
+            background: var(--bg-secondary);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+        }
+
+        .controls {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.9rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-sequential {
+            background: linear-gradient(135deg, var(--accent-orange), #ff8855);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-parallel {
+            background: linear-gradient(135deg, var(--accent-green), #33ffaa);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-clear {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .result-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-header.sequential { border-left: 4px solid var(--accent-orange); }
+        .panel-header.parallel { border-left: 4px solid var(--accent-green); }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-idle { background: var(--bg-secondary); color: var(--text-secondary); }
+        .status-running { background: rgba(0, 212, 255, 0.2); color: var(--accent-cyan); animation: pulse 1.5s infinite; }
+        .status-completed { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease-out;
+        }
+
+        .progress-fill.sequential { background: linear-gradient(90deg, var(--accent-orange), #ff8855); }
+        .progress-fill.parallel { background: linear-gradient(90deg, var(--accent-green), #33ffaa); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 0.8rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.3rem;
+        }
+
+        .task-list {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .task-item {
+            padding: 0.6rem 0.8rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .task-item .task-time {
+            color: var(--accent-cyan);
+        }
+
+        .comparison {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .comparison h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .comparison-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .comparison-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .comparison-bar .label {
+            width: 100px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .comparison-bar .bar-container {
+            flex: 1;
+            height: 30px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comparison-bar .bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #000;
+            transition: width 0.5s ease-out;
+        }
+
+        .comparison-bar .bar.sequential { background: linear-gradient(90deg, var(--accent-orange), #ff8855); }
+        .comparison-bar .bar.parallel { background: linear-gradient(90deg, var(--accent-green), #33ffaa); }
+
+        .speedup {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 1rem;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+            border-radius: 8px;
+            font-size: 1.2rem;
+        }
+
+        .speedup strong {
+            color: var(--accent-green);
+            font-size: 1.5rem;
+        }
+
+        .log-viewer {
+            margin-top: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-header h3 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-content {
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 0.3rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-entry .timestamp {
+            color: var(--text-secondary);
+        }
+
+        .log-entry .method {
+            font-weight: 600;
+        }
+
+        .log-entry .method.POST { color: var(--accent-orange); }
+        .log-entry .method.GET { color: var(--accent-cyan); }
+
+        .log-entry .url { color: var(--text-primary); }
+        .log-entry .status { color: var(--accent-green); }
+        .log-entry .duration { color: var(--accent-magenta); }
+
+        .request-count {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Worker Threads Demo</h1>
+            <p class="subtitle">Visualize Sequential vs Parallel Execution in Node.js</p>
+        </header>
+
+        <div class="dev-tools-hint">
+            <span class="icon">🔧</span>
+            <p>
+                Open <strong>Developer Tools</strong> (<kbd>F12</kbd> or <kbd>Cmd+Opt+I</kbd>) → 
+                <strong>Network</strong> tab to see real-time API requests and polling!
+            </p>
+        </div>
+
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Fibonacci Number</label>
+                    <input type="number" id="fibValue" value="40" min="30" max="45">
+                </div>
+                <div class="control-group">
+                    <label>Number of Tasks</label>
+                    <input type="number" id="taskCount" value="4" min="1" max="16">
+                </div>
+                <div class="buttons">
+                    <button class="btn-sequential" onclick="runSequential()">
+                        <span>▶</span> Run Sequential
+                    </button>
+                    <button class="btn-parallel" onclick="runParallel()">
+                        <span>⚡</span> Run Parallel
+                    </button>
+                    <button class="btn-clear" onclick="clearResults()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-grid">
+            <div class="result-panel" id="sequentialPanel">
+                <div class="panel-header sequential">
+                    <h3>📊 Sequential Execution</h3>
+                    <span class="status-badge status-idle" id="seqStatus">Idle</span>
+                </div>
+                <div class="panel-content">
+                    <div class="progress-bar">
+                        <div class="progress-fill sequential" id="seqProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value" id="seqCompleted">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="seqTotal">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="seqTime">-</div>
+                            <div class="stat-label">Time (ms)</div>
+                        </div>
+                    </div>
+                    <div class="task-list" id="seqTasks"></div>
+                </div>
+            </div>
+
+            <div class="result-panel" id="parallelPanel">
+                <div class="panel-header parallel">
+                    <h3>⚡ Parallel Execution</h3>
+                    <span class="status-badge status-idle" id="parStatus">Idle</span>
+                </div>
+                <div class="panel-content">
+                    <div class="progress-bar">
+                        <div class="progress-fill parallel" id="parProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value" id="parCompleted">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="parTotal">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="parTime">-</div>
+                            <div class="stat-label">Time (ms)</div>
+                        </div>
+                    </div>
+                    <div class="task-list" id="parTasks"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison" id="comparison" style="display: none;">
+            <h3>📈 Performance Comparison</h3>
+            <div class="comparison-bars">
+                <div class="comparison-bar">
+                    <span class="label">Sequential</span>
+                    <div class="bar-container">
+                        <div class="bar sequential" id="seqBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="comparison-bar">
+                    <span class="label">Parallel</span>
+                    <div class="bar-container">
+                        <div class="bar parallel" id="parBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="speedup" id="speedup"></div>
+        </div>
+
+        <div class="log-viewer">
+            <div class="log-header">
+                <h3>🌐 Network Requests Log</h3>
+                <span class="request-count" id="requestCount">0 requests</span>
+            </div>
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let sequentialTime = null;
+        let parallelTime = null;
+        let requestCounter = 0;
+
+        function log(method, url, status, duration) {
+            requestCounter++;
+            document.getElementById('requestCount').textContent = `${requestCounter} requests`;
+            
+            const logContent = document.getElementById('logContent');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+                <span class="method ${method}">${method}</span>
+                <span class="url">${url}</span>
+                <span class="status">${status}</span>
+                <span class="duration">${duration}ms</span>
+            `;
+            logContent.insertBefore(entry, logContent.firstChild);
+            
+            // Also log to console for dev tools
+            console.log(`[${method}] ${url} → ${status} (${duration}ms)`);
+        }
+
+        async function fetchWithLog(url, options = {}) {
+            const start = Date.now();
+            const response = await fetch(url, options);
+            const duration = Date.now() - start;
+            log(options.method || 'GET', url, response.status, duration);
+            return response;
+        }
+
+        async function pollStatus(taskId, type) {
+            const prefix = type === 'sequential' ? 'seq' : 'par';
+            
+            const poll = async () => {
+                const response = await fetchWithLog(`/api/status/${taskId}`);
+                const data = await response.json();
+                
+                // Update UI
+                document.getElementById(`${prefix}Completed`).textContent = data.completed;
+                document.getElementById(`${prefix}Total`).textContent = data.total;
+                document.getElementById(`${prefix}Progress`).style.width = `${(data.completed / data.total) * 100}%`;
+                
+                // Update task list
+                const taskList = document.getElementById(`${prefix}Tasks`);
+                taskList.innerHTML = data.results.map(r => `
+                    <div class="task-item">
+                        <span>Task ${r.taskNum}: fib(${document.getElementById('fibValue').value}) = ${r.result}</span>
+                        <span class="task-time">${r.time}ms</span>
+                    </div>
+                `).join('');
+                
+                if (data.status === 'completed') {
+                    document.getElementById(`${prefix}Status`).className = 'status-badge status-completed';
+                    document.getElementById(`${prefix}Status`).textContent = 'Completed';
+                    document.getElementById(`${prefix}Time`).textContent = data.totalTime;
+                    
+                    if (type === 'sequential') sequentialTime = data.totalTime;
+                    else parallelTime = data.totalTime;
+                    
+                    updateComparison();
+                    return;
+                }
+                
+                // Continue polling
+                setTimeout(poll, 200);
+            };
+            
+            poll();
+        }
+
+        async function runSequential() {
+            const fibValue = parseInt(document.getElementById('fibValue').value);
+            const taskCount = parseInt(document.getElementById('taskCount').value);
+            
+            // Reset UI
+            document.getElementById('seqStatus').className = 'status-badge status-running';
+            document.getElementById('seqStatus').textContent = 'Running';
+            document.getElementById('seqProgress').style.width = '0%';
+            document.getElementById('seqTasks').innerHTML = '';
+            document.getElementById('seqCompleted').textContent = '0';
+            document.getElementById('seqTotal').textContent = taskCount;
+            document.getElementById('seqTime').textContent = '-';
+            
+            console.group('🔶 Sequential Execution Started');
+            console.log('Fibonacci:', fibValue, 'Tasks:', taskCount);
+            
+            const response = await fetchWithLog('/api/sequential', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fibValue, taskCount })
+            });
+            
+            const { taskId } = await response.json();
+            console.log('Task ID:', taskId);
+            
+            pollStatus(taskId, 'sequential');
+        }
+
+        async function runParallel() {
+            const fibValue = parseInt(document.getElementById('fibValue').value);
+            const taskCount = parseInt(document.getElementById('taskCount').value);
+            
+            // Reset UI
+            document.getElementById('parStatus').className = 'status-badge status-running';
+            document.getElementById('parStatus').textContent = 'Running';
+            document.getElementById('parProgress').style.width = '0%';
+            document.getElementById('parTasks').innerHTML = '';
+            document.getElementById('parCompleted').textContent = '0';
+            document.getElementById('parTotal').textContent = taskCount;
+            document.getElementById('parTime').textContent = '-';
+            
+            console.group('🟢 Parallel Execution Started');
+            console.log('Fibonacci:', fibValue, 'Tasks:', taskCount);
+            
+            const response = await fetchWithLog('/api/parallel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fibValue, taskCount })
+            });
+            
+            const { taskId } = await response.json();
+            console.log('Task ID:', taskId);
+            
+            pollStatus(taskId, 'parallel');
+        }
+
+        function updateComparison() {
+            if (sequentialTime && parallelTime) {
+                document.getElementById('comparison').style.display = 'block';
+                
+                const maxTime = Math.max(sequentialTime, parallelTime);
+                const seqPercent = (sequentialTime / maxTime) * 100;
+                const parPercent = (parallelTime / maxTime) * 100;
+                
+                document.getElementById('seqBar').style.width = `${seqPercent}%`;
+                document.getElementById('seqBar').textContent = `${sequentialTime}ms`;
+                document.getElementById('parBar').style.width = `${parPercent}%`;
+                document.getElementById('parBar').textContent = `${parallelTime}ms`;
+                
+                const speedup = (sequentialTime / parallelTime).toFixed(2);
+                document.getElementById('speedup').innerHTML = `
+                    Parallel execution was <strong>${speedup}x faster</strong> than sequential!
+                `;
+                
+                console.groupEnd();
+                console.log(`📊 Comparison: Sequential ${sequentialTime}ms vs Parallel ${parallelTime}ms = ${speedup}x speedup`);
+            }
+        }
+
+        function clearResults() {
+            ['seq', 'par'].forEach(prefix => {
+                document.getElementById(`${prefix}Status`).className = 'status-badge status-idle';
+                document.getElementById(`${prefix}Status`).textContent = 'Idle';
+                document.getElementById(`${prefix}Progress`).style.width = '0%';
+                document.getElementById(`${prefix}Tasks`).innerHTML = '';
+                document.getElementById(`${prefix}Completed`).textContent = '0';
+                document.getElementById(`${prefix}Total`).textContent = '0';
+                document.getElementById(`${prefix}Time`).textContent = '-';
+            });
+            
+            document.getElementById('comparison').style.display = 'none';
+            document.getElementById('logContent').innerHTML = '';
+            requestCounter = 0;
+            document.getElementById('requestCount').textContent = '0 requests';
+            sequentialTime = null;
+            parallelTime = null;
+            
+            console.clear();
+            console.log('🧹 Results cleared');
+        }
+    </script>
+</body>
+</html>
+
